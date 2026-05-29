@@ -10,7 +10,15 @@ app.use(cors());
 app.use(express.json());
 
 // Koneksi MySQL
-const db = mysql.createPool(process.env.MYSQL_URL);
+const db = mysql.createConnection(process.env.MYSQL_URL);
+db.connect((err) => {
+    if (err) {
+        console.error("Database gagal terkoneksi:", err);
+    } else {
+        console.log("Database berhasil terkoneksi!");
+    }
+});
+console.log("MYSQL_URL:", process.env.MYSQL_URL);
 const promiseDb = db.promise();
 
 // Secret key JWT
