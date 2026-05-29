@@ -10,15 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // Koneksi MySQL
-const db = mysql.createPool({
-    host: process.env.MYSQLHOST,
-    user: process.env.MYSQLUSER,
-    password: process.env.MYSQLPASSWORD,
-    database: process.env.MYSQLDATABASE,
-    port: process.env.MYSQLPORT,
-    waitForConnections: true,
-    connectionLimit: 10
-});
+const db = mysql.createPool(process.env.MYSQL_URL);
 const promiseDb = db.promise();
 
 // Secret key JWT
