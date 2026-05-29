@@ -11,10 +11,11 @@ app.use(express.json());
 
 // Koneksi MySQL
 const db = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'kostnest',
+    host: process.env.MYSQLHOST,
+    user: process.env.MYSQLUSER,
+    password: process.env.MYSQLPASSWORD,
+    database: process.env.MYSQLDATABASE,
+    port: process.env.MYSQLPORT,
     waitForConnections: true,
     connectionLimit: 10
 });
@@ -131,5 +132,5 @@ app.delete('/api/bookings/:id', authenticate, async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Backend berjalan di http://localhost:${PORT}`);
+    console.log(`Backend berjalan di port ${PORT}`);
 });
