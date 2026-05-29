@@ -76,10 +76,20 @@ app.post('/api/login', async (req, res) => {
 // ========== ROOMS ==========
 app.get('/api/rooms', async (req, res) => {
     try {
-        const [rows] = await promiseDb.execute('SELECT id, name, price, description, image_icon, bg_color FROM rooms');
+        const [rows] = await promiseDb.execute(
+            'SELECT id, name, price, description, image_icon, bg_color FROM rooms'
+        );
+
         res.json(rows);
+
     } catch (err) {
-        res.status(500).json({ error: 'Gagal mengambil data kamar' });
+
+        console.error("MYSQL ERROR:", err);
+
+        res.status(500).json({
+            error: 'Gagal mengambil data kamar',
+            detail: err.message
+        });
     }
 });
 
