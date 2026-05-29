@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KostNest | Cari Kos Impianmu (MySQL Version)</title>
+    <!-- Tailwind CSS + Font Awesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+        }
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.15);
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(3px);
+        }
+        .transition-all {
+            transition: all 0.2s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            ring: 2px solid #3b82f6;
+        }
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="font-sans antialiased">
+
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- NAVBAR -->
+        <nav class="bg-white shadow-md sticky top-0 z-20">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center flex-wrap">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-home text-blue-600 text-2xl"></i>
+                    <h1 class="text-xl font-bold text-gray-800">Kost<span class="text-blue-600">Nest</span></h1>
+                    <span class="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">MySQL</span>
+                </div>
+                <div id="auth-buttons" class="flex space-x-3 items-center">
+                    <!-- dynamic auth buttons -->
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <main class="container mx-auto px-4 py-8 flex-grow">
+            <!-- Halaman login/register -->
+            <div id="authSection" class="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 transition-all hidden">
+                <div class="text-center mb-6">
+                    <i class="fas fa-key text-blue-500 text-4xl mb-2"></i>
+                    <h2 id="authTitle" class="text-2xl font-bold">Masuk Akun</h2>
+                    <p class="text-gray-500 text-sm mt-1">Akses booking & kelola kos favoritmu</p>
+                </div>
+                <form id="authForm">
+                    <div id="nameField" class="mb-4 hidden">
+                        <label class="block text-gray-700 font-medium mb-1">Nama Lengkap</label>
+                        <input type="text" id="registerName" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-300" placeholder="Nama kamu">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-1">Email</label>
+                        <input type="email" id="authEmail" required class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-300" placeholder="email@contoh.com">
+                    </div>
+                    <div class="mb-5">
+                        <label class="block text-gray-700 font-medium mb-1">Password</label>
+                        <input type="password" id="authPassword" required class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-300" placeholder="minimal 4 karakter">
+                    </div>
+                    <button type="submit" id="submitAuthBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition shadow-md">Masuk</button>
+                </form>
+                <div class="text-center mt-5 text-sm">
+                    <p id="toggleAuthMsg" class="text-gray-600">
+                        Belum punya akun? 
+                        <button id="toggleAuthBtn" class="text-blue-600 font-semibold hover:underline">Daftar Sekarang</button>
+                    </p>
+                </div>
+                <div id="authError" class="mt-4 text-red-500 text-sm text-center hidden"></div>
+            </div>
+
+            <!-- Dashboard utama (setelah login) -->
+            <div id="dashboardSection" class="hidden">
+                <!-- Welcome banner -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl text-white p-6 mb-8 shadow-lg">
+                    <div class="flex justify-between items-center flex-wrap">
+                        <div>
+                            <h2 class="text-2xl font-bold" id="welcomeUser">Selamat Datang, User!</h2>
+                            <p class="text-blue-100 mt-1">Temukan kamar kos terbaik & kelola bookingmu</p>
+                        </div>
+                        <button id="logoutBtn" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-5 py-2 rounded-xl font-medium transition"><i class="fas fa-sign-out-alt mr-1"></i> Keluar</button>
+                    </div>
+                </div>
+
+                <!-- Daftar Kamar Kos -->
+                <div class="mb-12">
+                    <div class="flex items-center space-x-2 mb-5">
+                        <i class="fas fa-bed text-blue-600 text-xl"></i>
+                        <h3 class="text-2xl font-bold text-gray-800">Kamar Tersedia</h3>
+                        <span class="bg-blue-100 text-blue-700 text-sm px-2 py-0.5 rounded-full">✨ Pilihan Terbaik</span>
+                    </div>
+                    <div id="roomsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="col-span-full text-center py-10"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i><p class="mt-2">Memuat kamar...</p></div>
+                    </div>
+                </div>
+
+                <!-- Booking Saya -->
+                <div class="bg-white rounded-2xl shadow-md p-5 mb-8">
+                    <div class="flex items-center space-x-3 border-b pb-3 mb-4">
+                        <i class="fas fa-calendar-check text-green-600 text-xl"></i>
+                        <h3 class="text-xl font-bold text-gray-800">Booking Saya</h3>
+                    </div>
+                    <div id="bookingsList">
+                        <p class="text-gray-500 italic text-center py-6">Belum ada booking. Pilih kamar di atas!</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer class="bg-white border-t mt-8 py-5 text-center text-gray-500 text-sm">
+            © 2025 KostNest — Terintegrasi dengan MySQL & API Nyata.
+        </footer>
+    </div>
+
+    <!-- MODAL BOOKING -->
+    <div id="bookingModal" class="fixed inset-0 z-30 hidden items-center justify-center p-4 modal-backdrop transition-all">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl transform transition-all p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold flex items-center"><i class="fas fa-bookmark text-blue-500 mr-2"></i> Booking Kamar</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <form id="bookingForm">
+                <input type="hidden" id="bookingRoomId">
+                <div class="mb-3">
+                    <p class="font-semibold text-gray-700">Kamar: <span id="modalRoomName" class="text-blue-600"></span></p>
+                    <p class="text-gray-500 text-sm">Harga: <span id="modalRoomPrice"></span> / bulan</p>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-1">Tanggal Check-in</label>
+                    <input type="date" id="checkIn" required class="w-full border border-gray-300 rounded-xl px-4 py-2">
+                </div>
+                <div class="mb-5">
+                    <label class="block text-gray-700 font-medium mb-1">Tanggal Check-out</label>
+                    <input type="date" id="checkOut" required class="w-full border border-gray-300 rounded-xl px-4 py-2">
+                </div>
+                <button type="submit" id="confirmBookingBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-xl transition">Konfirmasi Booking</button>
+            </form>
+            <div id="modalError" class="mt-3 text-red-500 text-xs text-center hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        // ======================= KONFIGURASI API ==========================
+        // GANTI URL_BACKEND dengan alamat backend Node.js Anda.
+        // Jika backend berjalan di localhost:5000, biarkan seperti ini.
+        // Untuk production, ganti dengan domain backend (contoh: https://api-kostnest.up.railway.app)
+        const URL_BACKEND = "http://localhost:5000";  // <-- Ubah jika backend di hosting berbeda
+
+        // Helper untuk fetch dengan token
+        async function apiFetch(endpoint, options = {}) {
+            const token = localStorage.getItem('auth_token');
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            const response = await fetch(`${URL_BACKEND}${endpoint}`, {
+                ...options,
+                headers
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+            return response.json();
+        }
+
+        // API Wrappers
+        const API = {
+            async register(name, email, password) {
+                const data = await apiFetch('/api/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ name, email, password })
+                });
+                localStorage.setItem('auth_token', data.token);
+                return data;
+            },
+            async login(email, password) {
+                const data = await apiFetch('/api/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+                localStorage.setItem('auth_token', data.token);
+                return data;
+            },
+            logout() {
+                localStorage.removeItem('auth_token');
+            },
+            getCurrentUser() {
+                const token = localStorage.getItem('auth_token');
+                if (!token) return null;
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    return { userId: payload.userId, name: payload.name, email: payload.email };
+                } catch (e) {
+                    return null;
+                }
+            },
+            async getRooms() {
+                return await apiFetch('/api/rooms');
+            },
+            async getBookings() {
+                return await apiFetch('/api/bookings');
+            },
+            async createBooking(roomId, checkIn, checkOut) {
+                return await apiFetch('/api/bookings', {
+                    method: 'POST',
+                    body: JSON.stringify({ roomId, checkIn, checkOut })
+                });
+            },
+            async cancelBooking(bookingId) {
+                return await apiFetch(`/api/bookings/${bookingId}`, {
+                    method: 'DELETE'
+                });
+            }
+        };
+
+        // ---------- DOM Elements ----------
+        const authSection = document.getElementById('authSection');
+        const dashboardSection = document.getElementById('dashboardSection');
+        const authButtonsDiv = document.getElementById('auth-buttons');
+        const roomsContainer = document.getElementById('roomsContainer');
+        const bookingsListDiv = document.getElementById('bookingsList');
+        const welcomeUserSpan = document.getElementById('welcomeUser');
+
+        // Auth form
+        const authForm = document.getElementById('authForm');
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const registerNameInput = document.getElementById('registerName');
+        const nameFieldDiv = document.getElementById('nameField');
+        const authTitle = document.getElementById('authTitle');
+        const submitAuthBtn = document.getElementById('submitAuthBtn');
+        const toggleAuthBtn = document.getElementById('toggleAuthBtn');
+        const toggleAuthMsg = document.getElementById('toggleAuthMsg');
+        const authError = document.getElementById('authError');
+
+        // Modal
+        const modal = document.getElementById('bookingModal');
+        const bookingForm = document.getElementById('bookingForm');
+        const modalRoomName = document.getElementById('modalRoomName');
+        const modalRoomPrice = document.getElementById('modalRoomPrice');
+        const bookingRoomId = document.getElementById('bookingRoomId');
+        const checkInInput = document.getElementById('checkIn');
+        const checkOutInput = document.getElementById('checkOut');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalErrorDiv = document.getElementById('modalError');
+
+        let isLoginMode = true;
+        let currentUser = null;
+
+        // UI Helpers
+        function showAuthError(msg) {
+            authError.innerText = msg;
+            authError.classList.remove('hidden');
+            setTimeout(() => authError.classList.add('hidden'), 3500);
+        }
+        function showModalError(msg) {
+            modalErrorDiv.innerText = msg;
+            modalErrorDiv.classList.remove('hidden');
+            setTimeout(() => modalErrorDiv.classList.add('hidden'), 3000);
+        }
+        function clearModalError() { modalErrorDiv.classList.add('hidden'); }
+
+        // Toggle Login/Register
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            if (isLoginMode) {
+                authTitle.innerText = "Masuk Akun";
+                submitAuthBtn.innerText = "Masuk";
+                toggleAuthMsg.innerHTML = `Belum punya akun? <button id="toggleAuthBtn" class="text-blue-600 font-semibold hover:underline">Daftar Sekarang</button>`;
+                nameFieldDiv.classList.add('hidden');
+                registerNameInput.required = false;
+            } else {
+                authTitle.innerText = "Daftar Akun Baru";
+                submitAuthBtn.innerText = "Daftar";
+                toggleAuthMsg.innerHTML = `Sudah punya akun? <button id="toggleAuthBtn" class="text-blue-600 font-semibold hover:underline">Masuk Sekarang</button>`;
+                nameFieldDiv.classList.remove('hidden');
+                registerNameInput.required = true;
+            }
+            document.getElementById('toggleAuthBtn')?.addEventListener('click', toggleAuthMode);
+        }
+
+        // Load Dashboard: rooms & bookings
+        async function loadDashboard() {
+            if (!currentUser) return;
+            welcomeUserSpan.innerText = `Halo, ${currentUser.name} ✨`;
+            await loadRooms();
+            await loadUserBookings();
+        }
+
+        async function loadRooms() {
+            try {
+                const rooms = await API.getRooms();
+                renderRooms(rooms);
+            } catch (err) {
+                roomsContainer.innerHTML = `<div class="col-span-full text-red-500 text-center">Gagal memuat kamar: ${err.message}</div>`;
+            }
+        }
+
+        function renderRooms(rooms) {
+            if (!rooms.length) {
+                roomsContainer.innerHTML = `<div class="col-span-full text-center">Belum ada kamar tersedia.</div>`;
+                return;
+            }
+            roomsContainer.innerHTML = rooms.map(room => `
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover border border-gray-100">
+                    <div class="h-32 ${room.bg_color || 'bg-gray-100'} flex items-center justify-center">
+                        <i class="${room.image_icon || 'fas fa-bed'} text-5xl text-gray-500"></i>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-bold text-lg text-gray-800">${escapeHtml(room.name)}</h4>
+                            <span class="text-blue-700 font-semibold">${escapeHtml(room.price)}</span>
+                        </div>
+                        <p class="text-gray-500 text-sm mt-1">${escapeHtml(room.description)}</p>
+                        <button data-room-id="${room.id}" data-room-name="${escapeHtml(room.name)}" data-room-price="${escapeHtml(room.price)}" class="booking-trigger mt-4 w-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold py-2 rounded-lg transition flex items-center justify-center gap-2"><i class="fas fa-calendar-plus"></i> Booking Sekarang</button>
+                    </div>
+                </div>
+            `).join('');
+            document.querySelectorAll('.booking-trigger').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const roomId = btn.dataset.roomId;
+                    const roomName = btn.dataset.roomName;
+                    const roomPrice = btn.dataset.roomPrice;
+                    openBookingModal(roomId, roomName, roomPrice);
+                });
+            });
+        }
+
+        async function loadUserBookings() {
+            if (!currentUser) return;
+            try {
+                const bookings = await API.getBookings();
+                if (!bookings.length) {
+                    bookingsListDiv.innerHTML = `<p class="text-gray-500 italic text-center py-6">Belum ada booking. Pilih kamar di atas!</p>`;
+                    return;
+                }
+                bookingsListDiv.innerHTML = bookings.map(booking => `
+                    <div class="border-b border-gray-100 py-4 flex flex-wrap justify-between items-center gap-3">
+                        <div>
+                            <p class="font-semibold text-gray-800"><i class="fas fa-door-open text-blue-500 mr-1"></i> ${escapeHtml(booking.room_name)}</p>
+                            <p class="text-sm text-gray-500"><i class="far fa-calendar-alt mr-1"></i> ${booking.check_in} s/d ${booking.check_out}</p>
+                            <p class="text-xs text-gray-400">Harga: ${escapeHtml(booking.room_price)}</p>
+                        </div>
+                        <button data-booking-id="${booking.id}" class="cancel-booking bg-red-50 hover:bg-red-100 text-red-600 px-4 py-1.5 rounded-lg text-sm font-medium transition"><i class="fas fa-times-circle"></i> Batalkan</button>
+                    </div>
+                `).join('');
+                document.querySelectorAll('.cancel-booking').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const bookingId = parseInt(btn.dataset.bookingId);
+                        if (confirm("Yakin ingin membatalkan booking ini?")) {
+                            try {
+                                await API.cancelBooking(bookingId);
+                                await loadUserBookings();
+                            } catch (err) {
+                                alert("Gagal membatalkan: " + err.message);
+                            }
+                        }
+                    });
+                });
+            } catch (err) {
+                bookingsListDiv.innerHTML = `<p class="text-red-500 text-center">Gagal memuat booking: ${err.message}</p>`;
+            }
+        }
+
+        function openBookingModal(roomId, roomName, roomPrice) {
+            bookingRoomId.value = roomId;
+            modalRoomName.innerText = roomName;
+            modalRoomPrice.innerText = roomPrice;
+            const today = new Date().toISOString().split('T')[0];
+            checkInInput.min = today;
+            checkInInput.value = "";
+            checkOutInput.value = "";
+            clearModalError();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        async function handleBookingSubmit(e) {
+            e.preventDefault();
+            const roomId = bookingRoomId.value;
+            const checkIn = checkInInput.value;
+            const checkOut = checkOutInput.value;
+            if (!checkIn || !checkOut) {
+                showModalError("Harap isi tanggal check-in dan check-out.");
+                return;
+            }
+            try {
+                await API.createBooking(roomId, checkIn, checkOut);
+                closeModal();
+                await loadUserBookings();
+                alert("✅ Booking berhasil!");
+            } catch (err) {
+                showModalError(err.message);
+            }
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            bookingForm.reset();
+        }
+
+        // Auth handler
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = authEmail.value.trim();
+            const password = authPassword.value;
+            if (!email || !password) { showAuthError("Email dan password wajib diisi."); return; }
+            try {
+                let result;
+                if (isLoginMode) {
+                    result = await API.login(email, password);
+                } else {
+                    const name = registerNameInput.value.trim();
+                    if (!name) { showAuthError("Nama lengkap diperlukan."); return; }
+                    result = await API.register(name, email, password);
+                }
+                // Set current user dari token payload
+                const payload = API.getCurrentUser();
+                if (payload) {
+                    currentUser = payload;
+                } else {
+                    // fallback
+                    currentUser = { userId: result.user.id, name: result.user.name, email: result.user.email };
+                }
+                renderAfterLogin();
+            } catch (err) {
+                showAuthError(err.message);
+            }
+        }
+
+        function renderAfterLogin() {
+            authSection.classList.add('hidden');
+            dashboardSection.classList.remove('hidden');
+            updateNavbarButtons(true);
+            loadDashboard();
+        }
+
+        function handleLogout() {
+            API.logout();
+            currentUser = null;
+            authSection.classList.remove('hidden');
+            dashboardSection.classList.add('hidden');
+            updateNavbarButtons(false);
+            // reset form
+            authEmail.value = '';
+            authPassword.value = '';
+            registerNameInput.value = '';
+            if (!isLoginMode) toggleAuthMode();
+            authError.classList.add('hidden');
+        }
+
+        function updateNavbarButtons(isLoggedIn) {
+            if (isLoggedIn && currentUser) {
+                authButtonsDiv.innerHTML = `<span class="text-gray-700 text-sm hidden md:inline"><i class="far fa-user-circle"></i> ${escapeHtml(currentUser.name)}</span>
+                                            <button id="mobileLogoutBtn" class="bg-gray-200 hover:bg-gray-300 px-4 py-1.5 rounded-full text-sm font-medium"><i class="fas fa-sign-out-alt"></i> Keluar</button>`;
+                document.getElementById('mobileLogoutBtn')?.addEventListener('click', handleLogout);
+            } else {
+                authButtonsDiv.innerHTML = `<button id="showLoginBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full font-medium transition shadow-sm"><i class="fas fa-lock-open"></i> Masuk / Daftar</button>`;
+                document.getElementById('showLoginBtn')?.addEventListener('click', () => {
+                    authSection.classList.remove('hidden');
+                    dashboardSection.classList.add('hidden');
+                });
+            }
+        }
+
+        // Cek token saat load
+        async function checkAuthOnLoad() {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                try {
+                    // Verifikasi sederhana: coba panggil endpoint bookings untuk cek keabsahan token
+                    await API.getBookings(); // jika token invalid, akan throw error
+                    const payload = API.getCurrentUser();
+                    if (payload) {
+                        currentUser = payload;
+                        renderAfterLogin();
+                        return;
+                    }
+                } catch (err) {
+                    // Token tidak valid, hapus
+                    localStorage.removeItem('auth_token');
+                }
+            }
+            currentUser = null;
+            authSection.classList.remove('hidden');
+            dashboardSection.classList.add('hidden');
+            updateNavbarButtons(false);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                return c;
+            });
+        }
+
+        // Event binding
+        function bindEvents() {
+            authForm.addEventListener('submit', handleAuthSubmit);
+            if (toggleAuthBtn) toggleAuthBtn.addEventListener('click', toggleAuthMode);
+            closeModalBtn.addEventListener('click', closeModal);
+            bookingForm.addEventListener('submit', handleBookingSubmit);
+            window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        bindEvents();
+        checkAuthOnLoad();
+
+        // Pesan jika backend tidak bisa dijangkau (opsional)
+        window.addEventListener('load', () => {
+            fetch(`${URL_BACKEND}/api/rooms`).catch(() => {
+                console.warn("Backend tidak tersedia, pastikan server Node.js berjalan di " + URL_BACKEND);
+            });
+        });
+    </script>
+</body>
+</html>
