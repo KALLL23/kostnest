@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Koneksi MySQL
+// ========== KONEKSI MYSQL (POOLING) ==========
 const db = mysql.createPool({
     host: process.env.MYSQLHOST,
     user: process.env.MYSQLUSER,
@@ -20,15 +20,12 @@ const db = mysql.createPool({
     connectionLimit: 10
 });
 
+// Menggunakan promise untuk async/await
 const promiseDb = db.promise();
-db.connect((err) => {
-    if (err) {
-        console.error("Database gagal terkoneksi:", err);
-    } else {
-        console.log("Database berhasil terkoneksi!");
-    }
-});
-console.log("MYSQL_URL:", process.env.MYSQL_URL);
+
+// Cukup gunakan console.log, TIDAK PERLU db.connect() karena pool berjalan otomatis
+console.log("Database pool berhasil dibuat");
+
 // Secret key JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'rahasia_kostnest_super';
 
@@ -87,13 +84,9 @@ app.get('/api/rooms', async (req, res) => {
         const [rows] = await promiseDb.execute(
             'SELECT id, name, price, description, image_icon, bg_color FROM rooms'
         );
-
         res.json(rows);
-
     } catch (err) {
-
         console.error("MYSQL ERROR:", err);
-
         res.status(500).json({
             error: 'Gagal mengambil data kamar',
             detail: err.message
@@ -149,6 +142,6 @@ app.delete('/api/bookings/:id', authenticate, async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Backend berjalan di port ${PORT}`);
 });
