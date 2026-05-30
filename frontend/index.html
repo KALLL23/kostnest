@@ -91,12 +91,9 @@
 
             <div id="dashboardSection" class="hidden">
                 <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl text-white p-6 mb-8 shadow-lg">
-                    <div class="flex justify-between items-center flex-wrap">
-                        <div>
-                            <h2 class="text-2xl font-bold" id="welcomeUser">Selamat Datang, User!</h2>
-                            <p class="text-blue-100 mt-1">Temukan kamar kos terbaik & kelola bookingmu</p>
-                        </div>
-                        <button id="logoutBtn" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-5 py-2 rounded-xl font-medium transition"><i class="fas fa-sign-out-alt mr-1"></i> Keluar</button>
+                    <div>
+                        <h2 class="text-2xl font-bold" id="welcomeUser">Selamat Datang, User!</h2>
+                        <p class="text-blue-100 mt-1">Temukan kamar kos terbaik & kelola bookingmu</p>
                     </div>
                 </div>
 
@@ -123,7 +120,7 @@
             </div>
         </main>
         <footer class="bg-white border-t mt-8 py-5 text-center text-gray-500 text-sm">
-            © 2025 KostNest
+            © 2025 KostNest — Terintegrasi dengan MySQL & API Nyata.
         </footer>
     </div>
 
@@ -185,8 +182,6 @@
                     method: 'POST',
                     body: JSON.stringify({ name, email, password })
                 });
-                // PERUBAHAN: Menghapus localStorage.setItem('auth_token', data.token);
-                // Agar tidak otomatis login setelah daftar.
                 return data;
             },
             async login(email, password) {
@@ -219,7 +214,8 @@
             async createBooking(roomId, checkIn, checkOut) {
                 return await apiFetch('/api/bookings', {
                     method: 'POST',
-                    body: JSON.stringify({ roomId, checkIn, checkOut })
+                    // PERBAHAN FIX: roomId diubah secara eksplisit menjadi integer agar valid pada server backend MySQL2
+                    body: JSON.stringify({ roomId: parseInt(roomId, 10), checkIn, checkOut })
                 });
             },
             async cancelBooking(bookingId) {
@@ -444,16 +440,9 @@
                         return; 
                     }
                     
-                    // Lakukan proses register
                     await API.register(name, email, password);
-                    
-                    // PERUBAHAN: Tampilkan alert setelah registrasi sukses
                     alert("Registrasi berhasil! Silakan masuk dengan akun yang baru saja dibuat.");
-                    
-                    // Ubah mode kembali ke form masuk (login)
                     toggleAuthMode();
-                    
-                    // Kosongkan form password dan nama demi kenyamanan/keamanan
                     authPassword.value = '';
                     registerNameInput.value = '';
                 }
@@ -485,9 +474,10 @@
 
         function updateNavbarButtons(isLoggedIn) {
             if (isLoggedIn && currentUser) {
+                // FIX: Menampilkan satu tombol Keluar utama di dalam Navbar dengan gaya yang serasi
                 authButtonsDiv.innerHTML = `<span class="text-gray-700 text-sm hidden md:inline"><i class="far fa-user-circle"></i> ${escapeHtml(currentUser.name)}</span>
-                                            <button id="mobileLogoutBtn" class="bg-gray-200 hover:bg-gray-300 px-4 py-1.5 rounded-full text-sm font-medium"><i class="fas fa-sign-out-alt"></i> Keluar</button>`;
-                document.getElementById('mobileLogoutBtn')?.addEventListener('click', handleLogout);
+                                            <button id="navbarLogoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-full text-sm font-medium transition shadow-sm"><i class="fas fa-sign-out-alt"></i> Keluar</button>`;
+                document.getElementById('navbarLogoutBtn')?.addEventListener('click', handleLogout);
             } else {
                 authButtonsDiv.innerHTML = `<button id="showLoginBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full font-medium transition shadow-sm"><i class="fas fa-lock-open"></i> Masuk / Daftar</button>`;
                 document.getElementById('showLoginBtn')?.addEventListener('click', () => {
@@ -502,8 +492,7 @@
             const token = localStorage.getItem('auth_token');
             if (token) {
                 try {
-                    // Verifikasi sederhana: coba panggil endpoint bookings untuk cek keabsahan token
-                    await API.getBookings(); // jika token invalid, akan throw error
+                    await API.getBookings(); 
                     const payload = API.getCurrentUser();
                     if (payload) {
                         currentUser = payload;
@@ -511,7 +500,6 @@
                         return;
                     }
                 } catch (err) {
-                    // Token tidak valid, hapus
                     localStorage.removeItem('auth_token');
                 }
             }
