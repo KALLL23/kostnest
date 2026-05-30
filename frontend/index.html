@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>KostNest | Cari Kos Impianmu (MySQL Version)</title>
-    <!-- Tailwind CSS + Font Awesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -47,7 +46,6 @@
 <body class="font-sans antialiased">
 
     <div id="app" class="min-h-screen flex flex-col">
-        <!-- NAVBAR -->
         <nav class="bg-white shadow-md sticky top-0 z-20">
             <div class="container mx-auto px-4 py-3 flex justify-between items-center flex-wrap">
                 <div class="flex items-center space-x-2">
@@ -56,14 +54,11 @@
                     <span class="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">MySQL</span>
                 </div>
                 <div id="auth-buttons" class="flex space-x-3 items-center">
-                    <!-- dynamic auth buttons -->
-                </div>
+                    </div>
             </div>
         </nav>
 
-        <!-- MAIN CONTENT -->
         <main class="container mx-auto px-4 py-8 flex-grow">
-            <!-- Halaman login/register -->
             <div id="authSection" class="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 transition-all hidden">
                 <div class="text-center mb-6">
                     <i class="fas fa-key text-blue-500 text-4xl mb-2"></i>
@@ -94,9 +89,7 @@
                 <div id="authError" class="mt-4 text-red-500 text-sm text-center hidden"></div>
             </div>
 
-            <!-- Dashboard utama (setelah login) -->
             <div id="dashboardSection" class="hidden">
-                <!-- Welcome banner -->
                 <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl text-white p-6 mb-8 shadow-lg">
                     <div class="flex justify-between items-center flex-wrap">
                         <div>
@@ -107,7 +100,6 @@
                     </div>
                 </div>
 
-                <!-- Daftar Kamar Kos -->
                 <div class="mb-12">
                     <div class="flex items-center space-x-2 mb-5">
                         <i class="fas fa-bed text-blue-600 text-xl"></i>
@@ -119,7 +111,6 @@
                     </div>
                 </div>
 
-                <!-- Booking Saya -->
                 <div class="bg-white rounded-2xl shadow-md p-5 mb-8">
                     <div class="flex items-center space-x-3 border-b pb-3 mb-4">
                         <i class="fas fa-calendar-check text-green-600 text-xl"></i>
@@ -136,7 +127,6 @@
         </footer>
     </div>
 
-    <!-- MODAL BOOKING -->
     <div id="bookingModal" class="fixed inset-0 z-30 hidden items-center justify-center p-4 modal-backdrop transition-all">
         <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl transform transition-all p-6">
             <div class="flex justify-between items-center mb-4">
@@ -165,11 +155,7 @@
 
     <script>
         // ======================= KONFIGURASI API ==========================
-        // GANTI URL_BACKEND dengan alamat backend Node.js Anda.
-        // Jika backend berjalan di localhost:5000, biarkan seperti ini.
-        // Untuk production, ganti dengan domain backend (contoh: https://api-kostnest.up.railway.app)
-        // ======================= KONFIGURASI API ==========================
-        const URL_BACKEND = "https://kostnest-production.up.railway.app";  // <-- Ubah jika backend di hosting berbeda
+        const URL_BACKEND = "https://kostnest-production.up.railway.app"; 
 
         // Helper untuk fetch dengan token
         async function apiFetch(endpoint, options = {}) {
@@ -199,7 +185,8 @@
                     method: 'POST',
                     body: JSON.stringify({ name, email, password })
                 });
-                localStorage.setItem('auth_token', data.token);
+                // PERUBAHAN: Menghapus localStorage.setItem('auth_token', data.token);
+                // Agar tidak otomatis login setelah daftar.
                 return data;
             },
             async login(email, password) {
@@ -295,13 +282,13 @@
             if (isLoginMode) {
                 authTitle.innerText = "Masuk Akun";
                 submitAuthBtn.innerText = "Masuk";
-                toggleAuthMsg.innerHTML = `Belum punya akun? <button id="toggleAuthBtn" class="text-blue-600 font-semibold hover:underline">Daftar Sekarang</button>`;
+                toggleAuthMsg.innerHTML = `Belum punya akun? <button type="button" id="toggleAuthBtn" class="text-blue-600 font-semibold hover:underline">Daftar Sekarang</button>`;
                 nameFieldDiv.classList.add('hidden');
                 registerNameInput.required = false;
             } else {
                 authTitle.innerText = "Daftar Akun Baru";
                 submitAuthBtn.innerText = "Daftar";
-                toggleAuthMsg.innerHTML = `Sudah punya akun? <button id="toggleAuthBtn" class="text-blue-600 font-semibold hover:underline">Masuk Sekarang</button>`;
+                toggleAuthMsg.innerHTML = `Sudah punya akun? <button type="button" id="toggleAuthBtn" class="text-blue-600 font-semibold hover:underline">Masuk Sekarang</button>`;
                 nameFieldDiv.classList.remove('hidden');
                 registerNameInput.required = true;
             }
@@ -434,25 +421,42 @@
             e.preventDefault();
             const email = authEmail.value.trim();
             const password = authPassword.value;
-            if (!email || !password) { showAuthError("Email dan password wajib diisi."); return; }
+            
+            if (!email || !password) { 
+                showAuthError("Email dan password wajib diisi."); 
+                return; 
+            }
+            
             try {
-                let result;
                 if (isLoginMode) {
-                    result = await API.login(email, password);
+                    const result = await API.login(email, password);
+                    const payload = API.getCurrentUser();
+                    if (payload) {
+                        currentUser = payload;
+                    } else {
+                        currentUser = { userId: result.user.id, name: result.user.name, email: result.user.email };
+                    }
+                    renderAfterLogin();
                 } else {
                     const name = registerNameInput.value.trim();
-                    if (!name) { showAuthError("Nama lengkap diperlukan."); return; }
-                    result = await API.register(name, email, password);
+                    if (!name) { 
+                        showAuthError("Nama lengkap diperlukan."); 
+                        return; 
+                    }
+                    
+                    // Lakukan proses register
+                    await API.register(name, email, password);
+                    
+                    // PERUBAHAN: Tampilkan alert setelah registrasi sukses
+                    alert("Registrasi berhasil! Silakan masuk dengan akun yang baru saja dibuat.");
+                    
+                    // Ubah mode kembali ke form masuk (login)
+                    toggleAuthMode();
+                    
+                    // Kosongkan form password dan nama demi kenyamanan/keamanan
+                    authPassword.value = '';
+                    registerNameInput.value = '';
                 }
-                // Set current user dari token payload
-                const payload = API.getCurrentUser();
-                if (payload) {
-                    currentUser = payload;
-                } else {
-                    // fallback
-                    currentUser = { userId: result.user.id, name: result.user.name, email: result.user.email };
-                }
-                renderAfterLogin();
             } catch (err) {
                 showAuthError(err.message);
             }
